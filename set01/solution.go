@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"math"
 )
 
 var hexToByte = map[rune]byte{
@@ -117,11 +118,44 @@ var byteToBase64 = map[byte]rune{
 	0x3F: '/',
 }
 
+// from https://pi.math.cornell.edu/~mec/2003-2004/cryptography/subs/frequencies.html
+var englishFrequencies = map[rune]float64{
+	'e': 12.02,
+	't': 9.10,
+	'a': 8.12,
+	'o': 7.68,
+	'i': 7.31,
+	'n': 6.95,
+	's': 6.28,
+	'r': 6.02,
+	'h': 5.92,
+	'd': 4.32,
+	'l': 3.98,
+	'u': 2.88,
+	'c': 2.71,
+	'm': 2.61,
+	'f': 2.30,
+	'y': 2.11,
+	'w': 2.09,
+	'g': 2.03,
+	'p': 1.82,
+	'b': 1.49,
+	'v': 1.11,
+	'k': 0.69,
+	'x': 0.17,
+	'q': 0.11,
+	'j': 0.10,
+	'z': 0.07,
+}
+
 func HexToBase64(input string) (string, error) {
 	//return hexToBase64StdLib(input)
 	return hexToBase64Custom(input)
 }
 
+// XORs bytes represented by hex1 with bytes represented by hex2
+// if hex2 is shorter than hex1, the bytes in hex2 are repeated.
+// if hex2 is longer, additional bytes are ignored.
 func XOR(hex1 string, hex2 string) (string, error) {
 	bytes1, err := hexToBytes(hex1)
 	if err != nil {
@@ -132,16 +166,115 @@ func XOR(hex1 string, hex2 string) (string, error) {
 		return "", err
 	}
 
-	if len(bytes1) != len(bytes2) {
-		return "", errors.New("XOR inputs must be equal length")
-	}
-
 	result := make([]byte, len(bytes1))
 	for i := 0; i < len(bytes1); i++ {
-		result[i] = bytes1[i] ^ bytes2[i]
+		result[i] = bytes1[i] ^ bytes2[i%len(bytes2)]
 	}
 
 	return bytesToHex(result), nil
+}
+
+func HexToString(input string) (string, error) {
+	bytes, err := hexToBytes(input)
+	if err != nil {
+		return "", err
+	}
+
+	return string(bytes), nil
+}
+
+func DecryptSingleByteXor(input string) (string, byte, error) {
+	lowestScore := math.MaxFloat64
+	bestResult := ""
+	bestKey := byte(0x0)
+
+	for v := 0; v < 256; v++ {
+		key := bytesToHex([]byte{byte(v)})
+		decryptedHex, err := XOR(input, key)
+		if err != nil {
+			return "", 0, err
+		}
+
+		plaintext, err := HexToString(decryptedHex)
+		if err != nil {
+			return "", 0, err
+		}
+
+		score := scorePlaintext(plaintext)
+		if score < lowestScore {
+			lowestScore = score
+			bestResult = plaintext
+			bestKey = byte(v)
+		}
+
+	}
+
+	return bestResult, bestKey, nil
+}
+
+// given an input string, return the mean squared error of character frequency
+// lower scores indicate higher likelyhood that input is in English.
+func scorePlaintext(input string) float64 {
+	freqs := alphabetFrequency(input)
+	var sumSquares float64 = 0
+	for c, f := range freqs {
+		sdiff := math.Pow(f-englishFrequencies[c], 2)
+		sumSquares += sdiff
+	}
+	return sumSquares / float64(len(freqs))
+}
+
+// measures the frequency of characters a-z in the input
+// upercase and lowercase are counted the same: the returned map is keyed with lowercase
+func alphabetFrequency(input string) map[rune]float64 {
+	counts := map[rune]int{
+		'a': 0,
+		'b': 0,
+		'c': 0,
+		'd': 0,
+		'e': 0,
+		'f': 0,
+		'g': 0,
+		'h': 0,
+		'i': 0,
+		'j': 0,
+		'k': 0,
+		'l': 0,
+		'm': 0,
+		'n': 0,
+		'o': 0,
+		'p': 0,
+		'q': 0,
+		'r': 0,
+		's': 0,
+		't': 0,
+		'u': 0,
+		'v': 0,
+		'w': 0,
+		'x': 0,
+		'y': 0,
+		'z': 0,
+	}
+
+	var countedTotal float64 = 0
+	for _, c := range input {
+		// 65 - 90 : A - Z
+		// 97 - 122 : a - z
+		if 'A' <= c && c <= 'Z' {
+			c = c + ('a' - 'A')
+			counts[c] += 1
+			countedTotal += 1
+		} else if 97 <= c && c <= 122 {
+			counts[c] += 1
+			countedTotal += 1
+		}
+	}
+
+	freqs := make(map[rune]float64, len(counts))
+	for k, v := range counts {
+		freqs[k] = float64(v) / countedTotal * 100
+	}
+	return freqs
 }
 
 func hexToBase64StdLib(input string) (string, error) {

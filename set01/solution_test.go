@@ -47,6 +47,18 @@ func TestChallenge_02(t *testing.T) {
 	}
 }
 
+func TestChallenge_03(t *testing.T) {
+	input := "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
+	expected := "Cooking MC's like a pound of bacon"
+	plaintext, key, err := DecryptSingleByteXor(input)
+	assertNoError(t, err)
+
+	t.Logf("Key is %v, message is %v", key, plaintext)
+	if plaintext != expected {
+		t.Errorf("Expected %v, got %v", expected, plaintext)
+	}
+}
+
 func assertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error raised: %v", err)
