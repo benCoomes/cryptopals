@@ -35,6 +35,18 @@ func Test_Challenge_01_Padding2(t *testing.T) {
 	}
 }
 
+func TestChallenge_02(t *testing.T) {
+	input1 := "1c0111001f010100061a024b53535009181c"
+	input2 := "686974207468652062756c6c277320657965"
+	expected := "746865206b696420646f6e277420706c6179"
+	actual, err := XOR(input1, input2)
+	assertNoError(t, err)
+
+	if actual != expected {
+		t.Errorf("Expected %v, got %v", expected, actual)
+	}
+}
+
 func assertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error raised: %v", err)

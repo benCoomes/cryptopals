@@ -31,6 +31,25 @@ var hexToByte = map[rune]byte{
 	'F': 0xf,
 }
 
+var byteToHex = map[byte]rune{
+	0x0: '0',
+	0x1: '1',
+	0x2: '2',
+	0x3: '3',
+	0x4: '4',
+	0x5: '5',
+	0x6: '6',
+	0x7: '7',
+	0x8: '8',
+	0x9: '9',
+	0xa: 'a',
+	0xb: 'b',
+	0xc: 'c',
+	0xd: 'd',
+	0xe: 'e',
+	0xf: 'f',
+}
+
 var byteToBase64 = map[byte]rune{
 	0x00: 'A',
 	0x01: 'B',
@@ -103,6 +122,28 @@ func HexToBase64(input string) (string, error) {
 	return hexToBase64Custom(input)
 }
 
+func XOR(hex1 string, hex2 string) (string, error) {
+	bytes1, err := hexToBytes(hex1)
+	if err != nil {
+		return "", err
+	}
+	bytes2, err := hexToBytes(hex2)
+	if err != nil {
+		return "", err
+	}
+
+	if len(bytes1) != len(bytes2) {
+		return "", errors.New("XOR inputs must be equal length")
+	}
+
+	result := make([]byte, len(bytes1))
+	for i := 0; i < len(bytes1); i++ {
+		result[i] = bytes1[i] ^ bytes2[i]
+	}
+
+	return bytesToHex(result), nil
+}
+
 func hexToBase64StdLib(input string) (string, error) {
 	bytes, err := hex.DecodeString(input)
 	if err != nil {
@@ -137,6 +178,17 @@ func hexToBytes(input string) ([]byte, error) {
 		b += 1
 	}
 	return bytes, nil
+}
+
+func bytesToHex(bytes []byte) string {
+	runes := make([]rune, len(bytes)*2)
+	i := 0
+	for _, b := range bytes {
+		runes[i] = byteToHex[b>>4]
+		runes[i+1] = byteToHex[b&0xf]
+		i += 2
+	}
+	return string(runes)
 }
 
 func bytesToBase64(bytes []byte) (string, error) {
