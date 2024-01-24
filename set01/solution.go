@@ -216,6 +216,10 @@ func DecryptSingleByteXor(input string) (string, byte, error) {
 	return bestResult, bestKey, nil
 }
 
+func FindSingleCharXorEncryptedLine(input []string) (string, error) {
+	return input[0], nil
+}
+
 // given an input string, return the mean squared error of character frequency
 // lower scores indicate higher likelyhood that input is in English.
 func scorePlaintext(input string) float64 {

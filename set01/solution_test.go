@@ -1,6 +1,10 @@
 package set01
 
-import "testing"
+import (
+	"bufio"
+	"os"
+	"testing"
+)
 
 func Test_Challenge_01(t *testing.T) {
 	input := "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
@@ -59,8 +63,42 @@ func TestChallenge_03(t *testing.T) {
 	}
 }
 
+func TestChallenge04(t *testing.T) {
+	input, err := readFile("./inputs/challenge_04.txt")
+	expected := ""
+	assertNoError(t, err)
+
+	encryptedLine, err := FindSingleCharXorEncryptedLine(input)
+	assertNoError(t, err)
+
+	if encryptedLine != expected {
+		t.Errorf("Expected %v, got %v", expected, encryptedLine)
+	}
+}
+
 func assertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error raised: %v", err)
 	}
+}
+
+func readFile(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	lines := make([]string, 0)
+	// warning: lines over 64K will be incomplete
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return lines, nil
 }
