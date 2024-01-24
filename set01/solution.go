@@ -118,34 +118,38 @@ var byteToBase64 = map[byte]rune{
 	0x3F: '/',
 }
 
-// from https://pi.math.cornell.edu/~mec/2003-2004/cryptography/subs/frequencies.html
+// modified from https://pi.math.cornell.edu/~mec/2003-2004/cryptography/subs/frequencies.html
+// we assume spaces have ~20% occurance and adjust other frequencies down.
+// also, assume other symbols never appear as a heuristic to filter out symbol-heavy text.
 var englishFrequencies = map[rune]float64{
-	'e': 12.02,
-	't': 9.10,
-	'a': 8.12,
-	'o': 7.68,
-	'i': 7.31,
-	'n': 6.95,
-	's': 6.28,
-	'r': 6.02,
-	'h': 5.92,
-	'd': 4.32,
-	'l': 3.98,
-	'u': 2.88,
-	'c': 2.71,
-	'm': 2.61,
-	'f': 2.30,
-	'y': 2.11,
-	'w': 2.09,
-	'g': 2.03,
-	'p': 1.82,
-	'b': 1.49,
-	'v': 1.11,
-	'k': 0.69,
-	'x': 0.17,
-	'q': 0.11,
-	'j': 0.10,
-	'z': 0.07,
+	' ': 19.9,
+	'e': 9.6,
+	't': 7.3,
+	'a': 6.5,
+	'o': 6.1,
+	'i': 5.8,
+	'n': 5.6,
+	's': 5.0,
+	'r': 4.8,
+	'h': 4.7,
+	'd': 3.5,
+	'l': 3.2,
+	'u': 2.3,
+	'c': 2.2,
+	'm': 2.1,
+	'f': 1.8,
+	'y': 1.7,
+	'w': 1.7,
+	'g': 1.6,
+	'p': 1.5,
+	'b': 1.2,
+	'v': 0.9,
+	'k': 0.6,
+	'x': 0.1,
+	'q': 0.1,
+	'j': 0.1,
+	'z': 0.1,
+	0:   0, // all other symbols are tracked here
 }
 
 func HexToBase64(input string) (string, error) {
@@ -224,10 +228,13 @@ func scorePlaintext(input string) float64 {
 	return sumSquares / float64(len(freqs))
 }
 
-// measures the frequency of characters a-z in the input
+// measures the frequency of characters in the input
 // upercase and lowercase are counted the same: the returned map is keyed with lowercase
+// spaces are also counted.
+// all other symbols are counted together in the '0' key
 func alphabetFrequency(input string) map[rune]float64 {
 	counts := map[rune]int{
+		' ': 0,
 		'a': 0,
 		'b': 0,
 		'c': 0,
@@ -254,25 +261,26 @@ func alphabetFrequency(input string) map[rune]float64 {
 		'x': 0,
 		'y': 0,
 		'z': 0,
+		0:   0,
 	}
 
-	var countedTotal float64 = 0
 	for _, c := range input {
 		// 65 - 90 : A - Z
 		// 97 - 122 : a - z
 		if 'A' <= c && c <= 'Z' {
 			c = c + ('a' - 'A')
 			counts[c] += 1
-			countedTotal += 1
-		} else if 97 <= c && c <= 122 {
+		} else if (97 <= c && c <= 122) || c == ' ' {
 			counts[c] += 1
-			countedTotal += 1
+		} else {
+			counts[0] += 1
 		}
 	}
 
+	runeCount := float64(len([]rune(input)))
 	freqs := make(map[rune]float64, len(counts))
 	for k, v := range counts {
-		freqs[k] = float64(v) / countedTotal * 100
+		freqs[k] = float64(v) / runeCount * 100
 	}
 	return freqs
 }
