@@ -157,25 +157,32 @@ func HexToBase64(input string) (string, error) {
 	return hexToBase64Custom(input)
 }
 
-// XORs bytes represented by hex1 with bytes represented by hex2
-// if hex2 is shorter than hex1, the bytes in hex2 are repeated.
-// if hex2 is longer, additional bytes are ignored.
-func XOR(hex1 string, hex2 string) (string, error) {
-	bytes1, err := hexToBytes(hex1)
+// XORs bytes represented by input with bytes represented by secret
+// if secret is shorter than input, the bytes in secret are repeated.
+// if input is longer, additional bytes in the secret are ignored.
+func HexXor(input string, secret string) (string, error) {
+	inputBytes, err := hexToBytes(input)
 	if err != nil {
 		return "", err
 	}
-	bytes2, err := hexToBytes(hex2)
+	secretBytes, err := hexToBytes(secret)
 	if err != nil {
 		return "", err
 	}
 
-	result := make([]byte, len(bytes1))
-	for i := 0; i < len(bytes1); i++ {
-		result[i] = bytes1[i] ^ bytes2[i%len(bytes2)]
-	}
-
+	result := Xor(inputBytes, secretBytes)
 	return bytesToHex(result), nil
+}
+
+// XORs input bytes with secret bytes
+// if secret is shorter than input, the bytes in secret are repeated.
+// if input is longer, additional bytes in the secret are ignored.
+func Xor(input []byte, secret []byte) []byte {
+	result := make([]byte, len(input))
+	for i := 0; i < len(input); i++ {
+		result[i] = input[i] ^ secret[i%len(secret)]
+	}
+	return result
 }
 
 func HexToString(input string) (string, error) {
@@ -195,7 +202,7 @@ func DecryptSingleByteXor(input string) (string, byte, error) {
 
 	for v := 0; v < 256; v++ {
 		key := bytesToHex([]byte{byte(v)})
-		decryptedHex, err := XOR(input, key)
+		decryptedHex, err := HexXor(input, key)
 		if err != nil {
 			return "", 0, err
 		}
@@ -233,6 +240,12 @@ func FindSingleCharXorEncryptedLine(input []string) (string, error) {
 		}
 	}
 	return result, nil
+}
+
+// todo: expose this in a console command - its pretty cool!
+func EncryptRepeatingXOR(input string, secret string) string {
+	bytes := Xor([]byte(input), []byte(secret))
+	return bytesToHex(bytes)
 }
 
 // given an input string, return the mean squared error of character frequency
