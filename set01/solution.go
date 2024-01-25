@@ -187,6 +187,7 @@ func HexToString(input string) (string, error) {
 	return string(bytes), nil
 }
 
+// input is a hex-encoded string. Output is a plaintext english string (hopefully) and the byte used to decrypt.
 func DecryptSingleByteXor(input string) (string, byte, error) {
 	lowestScore := math.MaxFloat64
 	bestResult := ""
@@ -216,8 +217,22 @@ func DecryptSingleByteXor(input string) (string, byte, error) {
 	return bestResult, bestKey, nil
 }
 
+// input is a slice of hex-encoded strings, output is (hopefully) an english plaintext string
 func FindSingleCharXorEncryptedLine(input []string) (string, error) {
-	return input[0], nil
+	result := ""
+	lowestScore := math.MaxFloat64
+	for _, line := range input {
+		decrypted, _, err := DecryptSingleByteXor(line)
+		if err != nil {
+			return "", err
+		}
+		score := scorePlaintext(decrypted)
+		if score < lowestScore {
+			lowestScore = score
+			result = decrypted
+		}
+	}
+	return result, nil
 }
 
 // given an input string, return the mean squared error of character frequency

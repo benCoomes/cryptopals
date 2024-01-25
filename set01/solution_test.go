@@ -65,14 +65,14 @@ func TestChallenge_03(t *testing.T) {
 
 func TestChallenge04(t *testing.T) {
 	input, err := readFile("./inputs/challenge_04.txt")
-	expected := ""
+	expected := "Now that the party is jumping\n"
 	assertNoError(t, err)
 
-	encryptedLine, err := FindSingleCharXorEncryptedLine(input)
+	decryptedLine, err := FindSingleCharXorEncryptedLine(input)
 	assertNoError(t, err)
 
-	if encryptedLine != expected {
-		t.Errorf("Expected %v, got %v", expected, encryptedLine)
+	if decryptedLine != expected {
+		t.Errorf("Expected %v, got %v", expected, decryptedLine)
 	}
 }
 
