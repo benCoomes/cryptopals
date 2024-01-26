@@ -242,10 +242,32 @@ func FindSingleCharXorEncryptedLine(input []string) (string, error) {
 	return result, nil
 }
 
-// todo: expose this in a console command - its pretty cool!
 func EncryptRepeatingXOR(input string, secret string) string {
 	bytes := Xor([]byte(input), []byte(secret))
 	return bytesToHex(bytes)
+}
+
+func HammingDistance(input1 string, input2 string) (int, error) {
+	bytes1, bytes2 := []byte(input1), []byte(input2)
+	if len(bytes1) != len(bytes2) {
+		return 0, errors.New("input strings must have the same length in bytes")
+	}
+
+	sum := 0
+	for i := 0; i < len(bytes1); i++ {
+		b1, b2 := bytes1[i], bytes2[i]
+		diff := b1 ^ b2
+		dist := (diff & 1) +
+			((diff & 2) >> 1) +
+			((diff & 4) >> 2) +
+			((diff & 8) >> 3) +
+			((diff & 16) >> 4) +
+			((diff & 32) >> 5) +
+			((diff & 64) >> 6) +
+			((diff & 128) >> 7)
+		sum += int(dist)
+	}
+	return sum, nil
 }
 
 // given an input string, return the mean squared error of character frequency

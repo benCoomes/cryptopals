@@ -11,10 +11,7 @@ func Test_Challenge_01(t *testing.T) {
 	expected := "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t"
 	actual, err := HexToBase64(input)
 	assertNoError(t, err)
-
-	if expected != actual {
-		t.Errorf("Expected %v, got %v", expected, actual)
-	}
+	assertEqual(t, expected, actual)
 }
 
 func Test_Challenge_01_Padding1(t *testing.T) {
@@ -22,10 +19,7 @@ func Test_Challenge_01_Padding1(t *testing.T) {
 	expected := "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb28="
 	actual, err := HexToBase64(input)
 	assertNoError(t, err)
-
-	if expected != actual {
-		t.Errorf("Expected %v, got %v", expected, actual)
-	}
+	assertEqual(t, expected, actual)
 }
 
 func Test_Challenge_01_Padding2(t *testing.T) {
@@ -33,10 +27,7 @@ func Test_Challenge_01_Padding2(t *testing.T) {
 	expected := "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hybw=="
 	actual, err := HexToBase64(input)
 	assertNoError(t, err)
-
-	if expected != actual {
-		t.Errorf("Expected %v, got %v", expected, actual)
-	}
+	assertEqual(t, expected, actual)
 }
 
 func TestChallenge_02(t *testing.T) {
@@ -45,22 +36,15 @@ func TestChallenge_02(t *testing.T) {
 	expected := "746865206b696420646f6e277420706c6179"
 	actual, err := HexXor(input1, input2)
 	assertNoError(t, err)
-
-	if actual != expected {
-		t.Errorf("Expected %v, got %v", expected, actual)
-	}
+	assertEqual(t, expected, actual)
 }
 
 func TestChallenge_03(t *testing.T) {
 	input := "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
 	expected := "Cooking MC's like a pound of bacon"
-	plaintext, key, err := DecryptSingleByteXor(input)
+	plaintext, _, err := DecryptSingleByteXor(input)
 	assertNoError(t, err)
-
-	t.Logf("Key is %v, message is %v", key, plaintext)
-	if plaintext != expected {
-		t.Errorf("Expected %v, got %v", expected, plaintext)
-	}
+	assertEqual(t, expected, plaintext)
 }
 
 func TestChallenge04(t *testing.T) {
@@ -70,10 +54,7 @@ func TestChallenge04(t *testing.T) {
 
 	decryptedLine, err := FindSingleCharXorEncryptedLine(input)
 	assertNoError(t, err)
-
-	if decryptedLine != expected {
-		t.Errorf("Expected %v, got %v", expected, decryptedLine)
-	}
+	assertEqual(t, expected, decryptedLine)
 }
 
 func TestChallenge05(t *testing.T) {
@@ -81,8 +62,21 @@ func TestChallenge05(t *testing.T) {
 	expected := "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
 
 	encrypted := EncryptRepeatingXOR(input, "ICE")
-	if encrypted != expected {
-		t.Errorf("Expected %v, got %v", expected, encrypted)
+	assertEqual(t, expected, encrypted)
+}
+
+func TestChallenge06_HammingDistance(t *testing.T) {
+	s1 := "this is a test"
+	s2 := "wokka wokka!!!"
+	expected := 37
+	distance, err := HammingDistance(s1, s2)
+	assertNoError(t, err)
+	assertEqual(t, expected, distance)
+}
+
+func assertEqual[K comparable](t *testing.T, expected K, actual K) {
+	if expected != actual {
+		t.Errorf("Expected %v, got %v", expected, actual)
 	}
 }
 
