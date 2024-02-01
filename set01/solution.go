@@ -195,22 +195,26 @@ func HexToString(input string) (string, error) {
 }
 
 // input is a hex-encoded string. Output is a plaintext english string (hopefully) and the byte used to decrypt.
-func DecryptSingleByteXor(input string) (string, byte, error) {
+func DecryptSingleByteXorHexString(input string) (string, byte, error) {
+	bytes, err := hexToBytes(input)
+	if err != nil {
+		return "", 0, err
+	}
+
+	decrypted, key := DecryptSingleByteXor(bytes)
+	return decrypted, key, nil
+}
+
+func DecryptSingleByteXor(bytes []byte) (string, byte) {
 	lowestScore := math.MaxFloat64
 	bestResult := ""
 	bestKey := byte(0x0)
 
 	for v := 0; v < 256; v++ {
-		key := bytesToHex([]byte{byte(v)})
-		decryptedHex, err := HexXor(input, key)
-		if err != nil {
-			return "", 0, err
-		}
+		key := []byte{byte(v)}
+		decryptedHex := Xor(bytes, key)
 
-		plaintext, err := HexToString(decryptedHex)
-		if err != nil {
-			return "", 0, err
-		}
+		plaintext := string(decryptedHex)
 
 		score := scorePlaintext(plaintext)
 		if score < lowestScore {
@@ -221,7 +225,7 @@ func DecryptSingleByteXor(input string) (string, byte, error) {
 
 	}
 
-	return bestResult, bestKey, nil
+	return bestResult, bestKey
 }
 
 // input is a slice of hex-encoded strings, output is (hopefully) an english plaintext string
@@ -229,7 +233,7 @@ func FindSingleCharXorEncryptedLine(input []string) (string, error) {
 	result := ""
 	lowestScore := math.MaxFloat64
 	for _, line := range input {
-		decrypted, _, err := DecryptSingleByteXor(line)
+		decrypted, _, err := DecryptSingleByteXorHexString(line)
 		if err != nil {
 			return "", err
 		}
@@ -247,10 +251,14 @@ func EncryptRepeatingXOR(input string, secret string) string {
 	return bytesToHex(bytes)
 }
 
-func HammingDistance(input1 string, input2 string) (int, error) {
+func HammingDistanceString(input1 string, input2 string) (int, error) {
 	bytes1, bytes2 := []byte(input1), []byte(input2)
+	return HammingDistance(bytes1, bytes2)
+}
+
+func HammingDistance(bytes1 []byte, bytes2 []byte) (int, error) {
 	if len(bytes1) != len(bytes2) {
-		return 0, errors.New("input strings must have the same length in bytes")
+		return 0, errors.New("inputs must have the same length in bytes")
 	}
 
 	sum := 0
@@ -268,6 +276,84 @@ func HammingDistance(input1 string, input2 string) (int, error) {
 		sum += int(dist)
 	}
 	return sum, nil
+}
+
+func DecryptRepeatingKeyXor(input string) (string, string, error) {
+	bytes, err := base64.StdEncoding.DecodeString(input)
+	if err != nil {
+		return "", "", err
+	}
+
+	keysize, err := findKeysize(bytes, 2, 40)
+	if err != nil {
+		return "", "", err
+	}
+
+	result, key, err := decryptRepeatingKeyXorWithKeysize(bytes, keysize)
+	if err != nil {
+		return "", "", err
+	}
+
+	return result, key, nil
+}
+
+func findKeysize(bytes []byte, minGuess int, maxGuess int) (int, error) {
+	if minGuess <= 0 || maxGuess < minGuess {
+		return 0, errors.New("minGuess must be less than maxGuess, and both must be greater than zero")
+	}
+
+	if maxGuess*2 > len(bytes) {
+		return 0, errors.New("maxGuess is too large to check against the given input")
+	}
+
+	bestKey := minGuess
+	bestScore := math.MaxFloat64
+	for keysize := minGuess; keysize <= maxGuess; keysize++ {
+		// todo: don't look just at the first pair of keysize bytes, look at as many pairs as possible
+		// otherwise, sample size is dependent on the key size
+		b1, b2 := bytes[0:keysize], bytes[keysize:keysize*2]
+		dist, err := HammingDistance(b1, b2)
+		if err != nil {
+			return 0, err
+		}
+
+		score := float64(dist) / float64(keysize)
+		if score < bestScore {
+			bestScore = score
+			bestKey = keysize
+		}
+	}
+
+	return bestKey, nil
+}
+
+// takes input bytes that have been xord with key where only the keysize is known.
+// returns the decrypted string and the key
+func decryptRepeatingKeyXorWithKeysize(bytes []byte, keysize int) (string, string, error) {
+	// break into keysize blocks, and interleave
+	// decrypt each block as single-char xor, building the key and original text back from the result
+	decrypted := make([]byte, len(bytes))
+	block := make([]byte, len(bytes)/keysize+1)
+	key := make([]byte, keysize)
+
+	for b := 0; b < keysize; b++ {
+		n := 0
+		for i := b; i < len(bytes); i += keysize {
+			block[n] = bytes[i]
+			n++
+		}
+
+		dblock, keybyte := DecryptSingleByteXor(block)
+		key[b] = keybyte
+		n = 0
+		for i := b; i < len(bytes); i += keysize {
+			decrypted[i] = dblock[n]
+			n++
+		}
+	}
+
+	// return descrypted text and key
+	return string(decrypted), string(key), nil
 }
 
 // given an input string, return the mean squared error of character frequency

@@ -42,7 +42,7 @@ func TestChallenge_02(t *testing.T) {
 func TestChallenge_03(t *testing.T) {
 	input := "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
 	expected := "Cooking MC's like a pound of bacon"
-	plaintext, _, err := DecryptSingleByteXor(input)
+	plaintext, _, err := DecryptSingleByteXorHexString(input)
 	assertNoError(t, err)
 	assertEqual(t, expected, plaintext)
 }
@@ -69,9 +69,26 @@ func TestChallenge06_HammingDistance(t *testing.T) {
 	s1 := "this is a test"
 	s2 := "wokka wokka!!!"
 	expected := 37
-	distance, err := HammingDistance(s1, s2)
+	distance, err := HammingDistanceString(s1, s2)
 	assertNoError(t, err)
 	assertEqual(t, expected, distance)
+}
+
+func TestChallenge06(t *testing.T) {
+	lines, err := readFile("./inputs/challenge_06.txt")
+	assertNoError(t, err)
+
+	input := ""
+	for _, line := range lines {
+		input += line
+	}
+
+	expectedKey, expectedMsg := "", ""
+
+	message, key, err := DecryptRepeatingKeyXor(input)
+	assertNoError(t, err)
+	assertEqual(t, expectedMsg, message)
+	assertEqual(t, expectedKey, key)
 }
 
 func assertEqual[K comparable](t *testing.T, expected K, actual K) {
