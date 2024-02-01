@@ -309,15 +309,20 @@ func findKeysize(bytes []byte, minGuess int, maxGuess int) (int, error) {
 	bestKey := minGuess
 	bestScore := math.MaxFloat64
 	for keysize := minGuess; keysize <= maxGuess; keysize++ {
-		// todo: don't look just at the first pair of keysize bytes, look at as many pairs as possible
-		// otherwise, sample size is dependent on the key size
-		b1, b2 := bytes[0:keysize], bytes[keysize:keysize*2]
-		dist, err := HammingDistance(b1, b2)
-		if err != nil {
-			return 0, err
+		tcount, tdist := 0, 0
+		for i := 0; i+(keysize*2) < len(bytes); i += keysize * 2 {
+			div := i + keysize
+			b1, b2 := bytes[i:div], bytes[div:div+keysize]
+			dist, err := HammingDistance(b1, b2)
+			if err != nil {
+				return 0, err
+			}
+
+			tdist += dist
+			tcount += keysize
 		}
 
-		score := float64(dist) / float64(keysize)
+		score := float64(tdist) / float64(tcount)
 		if score < bestScore {
 			bestScore = score
 			bestKey = keysize

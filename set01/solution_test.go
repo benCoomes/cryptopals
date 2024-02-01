@@ -83,12 +83,12 @@ func TestChallenge06(t *testing.T) {
 		input += line
 	}
 
-	expectedKey, expectedMsg := "", ""
+	expectedKey, expectedMsg := "Terminator X: Bring the noise", "I'm back and I'm ringin' the bell \nA rockin' on the mike while the fly girls yell"
 
 	message, key, err := DecryptRepeatingKeyXor(input)
 	assertNoError(t, err)
-	assertEqual(t, expectedMsg, message)
 	assertEqual(t, expectedKey, key)
+	assertEqual(t, expectedMsg, message[0:len(expectedMsg)])
 }
 
 func assertEqual[K comparable](t *testing.T, expected K, actual K) {
