@@ -1,34 +1,8 @@
 package set01
 
 import (
-	"bufio"
-	"os"
 	"testing"
 )
-
-func Test_Challenge_01(t *testing.T) {
-	input := "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
-	expected := "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t"
-	actual, err := HexToBase64(input)
-	assertNoError(t, err)
-	assertEqual(t, expected, actual)
-}
-
-func Test_Challenge_01_Padding1(t *testing.T) {
-	input := "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f"
-	expected := "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb28="
-	actual, err := HexToBase64(input)
-	assertNoError(t, err)
-	assertEqual(t, expected, actual)
-}
-
-func Test_Challenge_01_Padding2(t *testing.T) {
-	input := "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f"
-	expected := "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hybw=="
-	actual, err := HexToBase64(input)
-	assertNoError(t, err)
-	assertEqual(t, expected, actual)
-}
 
 func TestChallenge_02(t *testing.T) {
 	input1 := "1c0111001f010100061a024b53535009181c"
@@ -89,37 +63,4 @@ func TestChallenge06(t *testing.T) {
 	assertNoError(t, err)
 	assertEqual(t, expectedKey, key)
 	assertEqual(t, expectedMsg, message[0:len(expectedMsg)])
-}
-
-func assertEqual[K comparable](t *testing.T, expected K, actual K) {
-	if expected != actual {
-		t.Errorf("Expected %v, got %v", expected, actual)
-	}
-}
-
-func assertNoError(t *testing.T, err error) {
-	if err != nil {
-		t.Errorf("Error raised: %v", err)
-	}
-}
-
-func readFile(path string) ([]string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	lines := make([]string, 0)
-	// warning: lines over 64K will be incomplete
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return lines, nil
 }
