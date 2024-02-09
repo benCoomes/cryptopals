@@ -38,3 +38,24 @@ func readFile(path string) ([]string, error) {
 
 	return lines, nil
 }
+
+func readFileBytes(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	bytes := make([]byte, 0)
+	// warning: lines over 64K will be incomplete
+	for scanner.Scan() {
+		bytes = append(bytes, scanner.Bytes()...)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
+}

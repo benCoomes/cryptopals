@@ -1,6 +1,7 @@
 package set01
 
 import (
+	"encoding/base64"
 	"testing"
 )
 
@@ -63,4 +64,18 @@ func TestChallenge06(t *testing.T) {
 	assertNoError(t, err)
 	assertEqual(t, expectedKey, key)
 	assertEqual(t, expectedMsg, message[0:len(expectedMsg)])
+}
+
+func TestChallenge07(t *testing.T) {
+	expectedMessage := "I'm back and I'm ringin' the bell \nA rockin' on the mike while the fly girls yell"
+
+	bytes, err := readFileBytes("./inputs/challenge_07.txt")
+	assertNoError(t, err)
+
+	_, err = base64.StdEncoding.Decode(bytes, bytes)
+	assertNoError(t, err)
+
+	message, err := DecodeAesEcb(bytes, "YELLOW SUBMARINE")
+	assertNoError(t, err)
+	assertEqual(t, expectedMessage, message[0:len(expectedMessage)])
 }

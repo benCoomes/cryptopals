@@ -1,6 +1,7 @@
 package set01
 
 import (
+	"crypto/aes"
 	"encoding/base64"
 	"errors"
 	"math"
@@ -169,6 +170,25 @@ func DecryptRepeatingKeyXor(input string) (string, string, error) {
 	}
 
 	return result, key, nil
+}
+
+const AES_BLOCK_SIZE = 16
+
+func DecodeAesEcb(input []byte, key string) (string, error) {
+	cipher, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	buffer := make([]byte, len(input))
+	for i := AES_BLOCK_SIZE; i < len(input); i += AES_BLOCK_SIZE {
+		block := input[i-AES_BLOCK_SIZE : i]
+		cipher.Decrypt(buffer[i-AES_BLOCK_SIZE:i], block)
+	}
+
+	// todo - final block, if not multiple of AES_BLOCK_SIZE?
+
+	return string(buffer), nil
 }
 
 func findKeysize(bytes []byte, minGuess int, maxGuess int) (int, error) {
