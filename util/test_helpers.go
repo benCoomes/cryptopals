@@ -1,4 +1,4 @@
-package set01
+package util
 
 import (
 	"bufio"
@@ -6,19 +6,19 @@ import (
 	"testing"
 )
 
-func assertEqual[K comparable](t *testing.T, expected K, actual K) {
+func AssertEqual[K comparable](t *testing.T, expected K, actual K) {
 	if expected != actual {
 		t.Errorf("Expected %v, got %v", expected, actual)
 	}
 }
 
-func assertNoError(t *testing.T, err error) {
+func AssertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error raised: %v", err)
 	}
 }
 
-func readFile(path string) ([]string, error) {
+func ReadFile(path string) ([]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func readFile(path string) ([]string, error) {
 	return lines, nil
 }
 
-func readFileBytes(path string) ([]byte, error) {
+func ReadFileBytes(path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err

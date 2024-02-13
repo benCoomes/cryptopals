@@ -1,8 +1,6 @@
 package set01
 
 import (
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 )
 
@@ -129,15 +127,6 @@ func HexToString(input string) (string, error) {
 	}
 
 	return string(bytes), nil
-}
-
-func hexToBase64StdLib(input string) (string, error) {
-	bytes, err := hex.DecodeString(input)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(bytes), nil
 }
 
 func hexToBase64Custom(input string) (string, error) {
