@@ -79,3 +79,12 @@ func TestChallenge07(t *testing.T) {
 	assertNoError(t, err)
 	assertEqual(t, expectedMessage, message[0:len(expectedMessage)])
 }
+
+func TestChallenge08(t *testing.T) {
+	expected := "d880619740a8a19b7840a8a31c810a3d08649a"
+	lines, err := readFile("./inputs/challenge_08.txt")
+	assertNoError(t, err)
+
+	ecbLine := DetectEcbLine(lines)
+	assertEqual(t, expected, ecbLine[0:len(expected)])
+}

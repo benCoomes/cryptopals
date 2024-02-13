@@ -191,6 +191,50 @@ func DecodeAesEcb(input []byte, key string) (string, error) {
 	return string(buffer), nil
 }
 
+// input is a slice of hex strings
+// output is the line most likely to be encrypted with ECB
+func DetectEcbLine(input []string) string {
+	bestCount := 0
+	bestLine := ""
+
+	for _, line := range input {
+		count := countSameBlocks(line)
+		if count > bestCount {
+			bestLine = line
+			bestCount = count
+		}
+	}
+
+	return bestLine
+}
+
+// 2 chars per byte * 16 bytes per block = 32 chars per block
+const HEX_CHARS_PER_AES_BLOCK = 32
+
+// for a given hex string, returns the number of 16-byte blocks that have at least one other match in the string
+func countSameBlocks(input string) int {
+	blocks := make(map[string]int, 0)
+
+	for i := HEX_CHARS_PER_AES_BLOCK; i < len(input); i += HEX_CHARS_PER_AES_BLOCK {
+		block := input[i-HEX_CHARS_PER_AES_BLOCK : i]
+		count, ok := blocks[block]
+		if ok {
+			blocks[block] = count + 1
+		} else {
+			blocks[block] = 1
+		}
+	}
+
+	total := 0
+	for _, count := range blocks {
+		if count > 1 {
+			total += count
+		}
+	}
+
+	return total
+}
+
 func findKeysize(bytes []byte, minGuess int, maxGuess int) (int, error) {
 	if minGuess <= 0 || maxGuess < minGuess {
 		return 0, errors.New("minGuess must be less than maxGuess, and both must be greater than zero")
