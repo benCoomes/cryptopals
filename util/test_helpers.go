@@ -12,9 +12,30 @@ func AssertEqual[K comparable](t *testing.T, expected K, actual K) {
 	}
 }
 
+func AssertSliceEqual[K comparable, S []K](t *testing.T, expected S, actual S) {
+	// choosing not to compare capacity, only length
+	if len(expected) != len(actual) {
+		t.Errorf("Expected %v, got %v", expected, actual)
+		return
+	}
+
+	for i := 0; i < len(expected); i++ {
+		if expected[i] != actual[i] {
+			t.Errorf("Expected %v, got %v", expected, actual)
+			return
+		}
+	}
+}
+
 func AssertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error raised: %v", err)
+	}
+}
+
+func AssertError(t *testing.T, err error) {
+	if err == nil {
+		t.Error("Expected an error but found nil")
 	}
 }
 
