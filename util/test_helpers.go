@@ -27,7 +27,27 @@ func AssertSliceEqual[K comparable, S []K](t *testing.T, expected S, actual S) {
 	}
 }
 
-func AssertNoError(t *testing.T, err error) {
+func RefuteEqual[K comparable](t *testing.T, a K, b K) {
+	if a == b {
+		t.Errorf("Expected %v and %v to be unequal", a, b)
+	}
+}
+
+func RefuteSliceEqual[K comparable, S []K](t *testing.T, a S, b S) {
+	if len(a) != len(b) {
+		return
+	}
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return
+		}
+	}
+
+	t.Errorf("Expected %v and %v to be unequal", a, b)
+}
+
+func RefuteError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error raised: %v", err)
 	}
