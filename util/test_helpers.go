@@ -8,20 +8,27 @@ import (
 
 func AssertEqual[K comparable](t *testing.T, expected K, actual K) {
 	if expected != actual {
-		t.Errorf("Expected %v, got %v", expected, actual)
+		mismatchMessage(t, expected, actual)
 	}
 }
 
 func AssertSliceEqual[K comparable, S []K](t *testing.T, expected S, actual S) {
+	if expected == nil || actual == nil {
+		if !(expected == nil && actual == nil) {
+			mismatchMessage(t, expected, actual)
+		}
+		return
+	}
+
 	// choosing not to compare capacity, only length
 	if len(expected) != len(actual) {
-		t.Errorf("Expected %v, got %v", expected, actual)
+		mismatchMessage(t, expected, actual)
 		return
 	}
 
 	for i := 0; i < len(expected); i++ {
 		if expected[i] != actual[i] {
-			t.Errorf("Expected %v, got %v", expected, actual)
+			mismatchMessage(t, expected, actual)
 			return
 		}
 	}
@@ -99,4 +106,8 @@ func ReadFileBytes(path string) ([]byte, error) {
 	}
 
 	return bytes, nil
+}
+
+func mismatchMessage[T any](t *testing.T, expected T, actual T) {
+	t.Errorf("\nExpected: %v\nGot:      %v", expected, actual)
 }

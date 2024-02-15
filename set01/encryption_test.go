@@ -87,6 +87,7 @@ func TestChallenge08(t *testing.T) {
 	lines, err := util.ReadFile("./inputs/challenge_08.txt")
 	util.RefuteError(t, err)
 
-	ecbLine := DetectEcbLine(lines)
+	ecbLine, err := DetectEcbLineHexStr(lines)
+	util.RefuteError(t, err)
 	util.AssertEqual(t, expected, ecbLine[0:len(expected)])
 }

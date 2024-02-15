@@ -181,7 +181,7 @@ func DecodeAesEcb(input []byte, key string) (string, error) {
 	}
 
 	buffer := make([]byte, len(input))
-	for i := AES_BLOCK_SIZE; i < len(input); i += AES_BLOCK_SIZE {
+	for i := AES_BLOCK_SIZE; i <= len(input); i += AES_BLOCK_SIZE {
 		block := input[i-AES_BLOCK_SIZE : i]
 		cipher.Decrypt(buffer[i-AES_BLOCK_SIZE:i], block)
 	}
@@ -193,9 +193,29 @@ func DecodeAesEcb(input []byte, key string) (string, error) {
 
 // input is a slice of hex strings
 // output is the line most likely to be encrypted with ECB
-func DetectEcbLine(input []string) string {
+func DetectEcbLineHexStr(input []string) (string, error) {
 	bestCount := 0
 	bestLine := ""
+
+	for _, line := range input {
+		bytes, err := hexToBytes(line)
+		if err != nil {
+			return "", err
+		}
+
+		count := countSameBlocks(bytes)
+		if count > bestCount {
+			bestLine = line
+			bestCount = count
+		}
+	}
+
+	return bestLine, nil
+}
+
+func DetectECBLine(input [][]byte) []byte {
+	bestCount := 0
+	var bestLine []byte
 
 	for _, line := range input {
 		count := countSameBlocks(line)
@@ -208,20 +228,16 @@ func DetectEcbLine(input []string) string {
 	return bestLine
 }
 
-// 2 chars per byte * 16 bytes per block = 32 chars per block
-const HEX_CHARS_PER_AES_BLOCK = 32
-
-// for a given hex string, returns the number of 16-byte blocks that have at least one other match in the string
-func countSameBlocks(input string) int {
+func countSameBlocks(input []byte) int {
 	blocks := make(map[string]int, 0)
 
-	for i := HEX_CHARS_PER_AES_BLOCK; i < len(input); i += HEX_CHARS_PER_AES_BLOCK {
-		block := input[i-HEX_CHARS_PER_AES_BLOCK : i]
-		count, ok := blocks[block]
+	for i := aes.BlockSize; i <= len(input); i += aes.BlockSize {
+		block := input[i-aes.BlockSize : i]
+		count, ok := blocks[string(block)]
 		if ok {
-			blocks[block] = count + 1
+			blocks[string(block)] = count + 1
 		} else {
-			blocks[block] = 1
+			blocks[string(block)] = 1
 		}
 	}
 
