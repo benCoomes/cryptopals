@@ -69,7 +69,8 @@ func TestChallenge06(t *testing.T) {
 }
 
 func TestChallenge07(t *testing.T) {
-	expectedMessage := "I'm back and I'm ringin' the bell \nA rockin' on the mike while the fly girls yell"
+	expectedMessage := []byte("I'm back and I'm ringin' the bell \nA rockin' on the mike while the fly girls yell")
+	key := []byte("YELLOW SUBMARINE")
 
 	bytes, err := util.ReadFileBytes("./inputs/challenge_07.txt")
 	util.RefuteError(t, err)
@@ -77,9 +78,13 @@ func TestChallenge07(t *testing.T) {
 	_, err = base64.StdEncoding.Decode(bytes, bytes)
 	util.RefuteError(t, err)
 
-	message, err := DecodeAesEcb(bytes, "YELLOW SUBMARINE")
+	message, err := DecodeAesEcb(bytes, key)
 	util.RefuteError(t, err)
-	util.AssertEqual(t, expectedMessage, message[0:len(expectedMessage)])
+	reencrypted, err := EncryptAesEcb(message, key)
+	util.RefuteError(t, err)
+
+	util.AssertSliceEqual(t, expectedMessage, message[0:len(expectedMessage)])
+	util.AssertSliceEqual(t, bytes, reencrypted)
 }
 
 func TestChallenge08(t *testing.T) {

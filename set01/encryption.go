@@ -172,23 +172,42 @@ func DecryptRepeatingKeyXor(input string) (string, string, error) {
 	return result, key, nil
 }
 
-const AES_BLOCK_SIZE = 16
+func DecodeAesEcb(input []byte, key []byte) ([]byte, error) {
+	if len(input)%aes.BlockSize != 0 {
+		return nil, errors.New("input length is not a multiple of AES block size (16)")
+	}
 
-func DecodeAesEcb(input []byte, key string) (string, error) {
-	cipher, err := aes.NewCipher([]byte(key))
+	cipher, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	buffer := make([]byte, len(input))
-	for i := AES_BLOCK_SIZE; i <= len(input); i += AES_BLOCK_SIZE {
-		block := input[i-AES_BLOCK_SIZE : i]
-		cipher.Decrypt(buffer[i-AES_BLOCK_SIZE:i], block)
+	for i := aes.BlockSize; i <= len(input); i += aes.BlockSize {
+		block := input[i-aes.BlockSize : i]
+		cipher.Decrypt(buffer[i-aes.BlockSize:i], block)
 	}
 
-	// todo - final block, if not multiple of AES_BLOCK_SIZE?
+	return buffer, nil
+}
 
-	return string(buffer), nil
+func EncryptAesEcb(input []byte, key []byte) ([]byte, error) {
+	if len(input)%aes.BlockSize != 0 {
+		return nil, errors.New("input length is not a multiple of AES block size (16)")
+	}
+
+	cipher, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := make([]byte, len(input))
+	for i := aes.BlockSize; i <= len(input); i += aes.BlockSize {
+		block := input[i-aes.BlockSize : i]
+		cipher.Encrypt(buffer[i-aes.BlockSize:i], block)
+	}
+
+	return buffer, nil
 }
 
 // input is a slice of hex strings
@@ -203,7 +222,7 @@ func DetectEcbLineHexStr(input []string) (string, error) {
 			return "", err
 		}
 
-		count := countSameBlocks(bytes)
+		count := CountSameBlocks(bytes)
 		if count > bestCount {
 			bestLine = line
 			bestCount = count
@@ -218,7 +237,7 @@ func DetectECBLine(input [][]byte) []byte {
 	var bestLine []byte
 
 	for _, line := range input {
-		count := countSameBlocks(line)
+		count := CountSameBlocks(line)
 		if count > bestCount {
 			bestLine = line
 			bestCount = count
@@ -228,7 +247,7 @@ func DetectECBLine(input [][]byte) []byte {
 	return bestLine
 }
 
-func countSameBlocks(input []byte) int {
+func CountSameBlocks(input []byte) int {
 	blocks := make(map[string]int, 0)
 
 	for i := aes.BlockSize; i <= len(input); i += aes.BlockSize {

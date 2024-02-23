@@ -63,3 +63,50 @@ func TestChallenge10(t *testing.T) {
 	util.RefuteError(t, err)
 	util.AssertEqual(t, expected, string(plaintext)[0:len(expected)])
 }
+
+func TestRandomEncrypter(t *testing.T) {
+	ciphertexts := make(map[int][]byte)
+	modes := make(map[int]Mode)
+	plaintext := []byte("This text has zero seasoning.")
+	for i := 0; i < 100; i++ {
+		ciphertext, mode, err := RandomEncrypt(plaintext)
+		util.RefuteError(t, err)
+		ciphertexts[i] = ciphertext
+		modes[i] = mode
+	}
+
+	cbcCount := 0
+	if modes[0] == CBC {
+		cbcCount++
+	}
+	for i := 1; i < len(ciphertexts); i++ {
+		util.RefuteSliceEqual(t, ciphertexts[0], ciphertexts[i])
+		if modes[i] == CBC {
+			cbcCount++
+		}
+	}
+	util.RefuteEqual(t, 100, cbcCount)
+	util.RefuteEqual(t, 0, cbcCount)
+}
+
+func TestPredictCipherMode(t *testing.T) {
+	var expectedMode Mode
+	testEncrypter := func(plaintext []byte) ([]byte, error) {
+		ciphertext, mode, err := RandomEncrypt(plaintext)
+		if err != nil {
+			return nil, err
+		}
+		expectedMode = mode
+		return ciphertext, nil
+	}
+
+	for i := 0; i < 100; i++ {
+		predictedMode, err := PredictCipherMode(testEncrypter)
+		util.RefuteError(t, err)
+
+		if predictedMode != expectedMode {
+			t.Fatalf("Failed to predict cipher mode on round %v. Expected %v, got %v", i, expectedMode, predictedMode)
+		}
+	}
+
+}
