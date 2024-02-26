@@ -201,6 +201,142 @@ func PredictCipherMode(encrypter BlackBoxEncrypter) (Mode, error) {
 	return CBC, nil
 }
 
+// given an encryption function that encrypts:
+// 1. With ECB
+// 2. With the same key every time
+// 3. With a secret message appended to the provided plaintext
+// Discover what the secret message is and return it
+func BreakECB(encrypter BlackBoxEncrypter) ([]byte, error) {
+	blockSize, err := PredictBlockSize(encrypter)
+	if err != nil {
+		return nil, err
+	}
+
+	mode, err := PredictCipherMode(encrypter)
+	if err != nil {
+		return nil, err
+	}
+	if mode != ECB {
+		return nil, errors.New("encrypter is not using ECB")
+	}
+
+	// Use known prefix to decrypt first block:
+	// AAAAAAAS ecretMes sageHere
+	// AAAAAASe cretMess ageHereX
+	// AAAAASec retMessa geHereXX
+	// ...
+	// SecretMe ssageHer eXXXXXXX
+
+	// Now we know first block: 'SecretMe'. Use that to decrypt second block:
+	// AAAAAAAS ecretMes sageHere
+	// AAAAAASe cretMess ageHereX
+	// AAAAASec retMessa geHereXX
+	// ...
+
+	// we only need blockSize encryptions with the prefix - that will shift all blocks the required amount
+	// we will adjust the plaintext guess using previously decrypted data
+	// note, we only need to encyrpt a single block for the guess - that's why ECB is vulnerable
+
+	decoded := make([]byte, 0)
+	for i := 0; i < blockSize; i++ {
+		shift := blockSize - 1 - i
+		plaintext := make([]byte, shift)
+		for i := range plaintext {
+			plaintext[i] = 'a'
+		}
+		plaintext = append(plaintext, decoded...)
+
+		// todo: remove debug error
+		if len(plaintext) != blockSize-1 {
+			return nil, fmt.Errorf("unexpected plaintext size: %v", plaintext)
+		}
+
+		ciphertext, err := encrypter(plaintext)
+		if err != nil {
+			return nil, err
+		}
+
+		guess, err := guessLastByte(plaintext, ciphertext[0:blockSize], encrypter)
+		if err != nil {
+			return nil, err
+		}
+		decoded = append(decoded, guess)
+	}
+
+	// TODO: repeat for other blocks, using previously decoded data to find next match
+
+	return decoded, nil
+}
+
+func guessLastByte(prefix []byte, expected []byte, encrypter BlackBoxEncrypter) (byte, error) {
+	// iterate all possible last bytes until a match is found for first block of ciphertext
+	for b := 0; b < 256; b++ {
+		guessPt := append(prefix, byte(b))
+		guessCt, err := encrypter(guessPt)
+		if err != nil {
+			return 0, err
+		}
+		// comparing encrypt("AAAAAAA<b>") to encrypt("AAAAAAA<?>") (if 8 byte blocks)
+		// if match, we know first byte of secret message is b
+		if sliceEqual(guessCt[0:len(expected)], expected) {
+			return byte(b), nil
+		}
+
+	}
+
+	return 0, fmt.Errorf("did not find any guess that matched: %v", prefix)
+}
+
+func sliceEqual[K comparable, S []K](a S, b S) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil {
+		return false
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i, aval := range a {
+		if b[i] != aval {
+			return false
+		}
+	}
+
+	return true
+}
+
+// given an unknown encryption function, returns the block size in bytes
+func PredictBlockSize(encrypter BlackBoxEncrypter) (int, error) {
+	// encypter is adding some unknown data, so we can't just see how long the ciphertext is for a single byte
+	// we can see how long with 0 additional? 1 additional?
+	// it will be the same length until we go over the block size
+	// so if 1 extra byte yields N extra bytes of ciphertext from last encryption, we know block size is N bytes
+	plaintext := []byte("")
+	ciphertext, err := encrypter(plaintext)
+	if err != nil {
+		return 0, err
+	}
+
+	lastLen := len(ciphertext)
+	maxBlockSize := 1024 // higher than any common block cipher's size
+	for i := 1; i <= maxBlockSize; i++ {
+		plaintext = append(plaintext, 'a')
+		ciphertext, err := encrypter(plaintext)
+		if err != nil {
+			return 0, err
+		}
+
+		if len(ciphertext) > lastLen {
+			return len(ciphertext) - lastLen, nil
+		}
+	}
+
+	return 0, fmt.Errorf("unable to determine block size (stopped searching after %v bytes)", maxBlockSize)
+}
+
 func randomBytes(length int) ([]byte, error) {
 	bytes := make([]byte, length)
 	_, err := cryptorand.Read(bytes)

@@ -1,9 +1,12 @@
 package set02
 
 import (
+	"crypto/aes"
 	"encoding/base64"
+	"fmt"
 	"testing"
 
+	"github.com/benCoomes/cryptopals/set01"
 	"github.com/benCoomes/cryptopals/util"
 )
 
@@ -109,4 +112,33 @@ func TestPredictCipherMode(t *testing.T) {
 		}
 	}
 
+}
+
+func TestBreakECB(t *testing.T) {
+	base64Message := "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
+	secretMessage, err := base64.StdEncoding.DecodeString(base64Message)
+	util.RefuteError(t, err)
+	secretKey, err := RandomAES128Key()
+	util.RefuteError(t, err)
+
+	// appends the secret message to the provided plaintext before
+	// encrypting with the secret (to the deciphering code) key
+	testEncrypter := func(plaintext []byte) ([]byte, error) {
+		plaintext = append(plaintext, secretMessage...)
+		plaintext, err = PadPlaintext(plaintext, aes.BlockSize)
+		if err != nil {
+			return nil, err
+		}
+
+		ciphertext, err := set01.EncryptAesEcb(plaintext, secretKey)
+		if err != nil {
+			return nil, err
+		}
+		return ciphertext, nil
+	}
+
+	decoded, err := BreakECB(testEncrypter)
+	util.RefuteError(t, err)
+	// util.AssertSliceEqual(t, secretMessage, decoded)
+	fmt.Printf("The secret message is: %v", decoded)
 }
