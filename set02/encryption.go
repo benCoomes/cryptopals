@@ -233,39 +233,51 @@ func BreakECB(encrypter BlackBoxEncrypter) ([]byte, error) {
 	// AAAAASec retMessa geHereXX
 	// ...
 
-	// we only need blockSize encryptions with the prefix - that will shift all blocks the required amount
-	// we will adjust the plaintext guess using previously decrypted data
-	// note, we only need to encyrpt a single block for the guess - that's why ECB is vulnerable
+	// start decoded with a block worth (minus one byte) of known values. We will remove them later.
+	decoded := make([]byte, blockSize-1)
+	for i := range decoded {
+		decoded[i] = 'a'
+	}
 
-	decoded := make([]byte, 0)
-	for i := 0; i < blockSize; i++ {
-		shift := blockSize - 1 - i
-		plaintext := make([]byte, shift)
-		for i := range plaintext {
-			plaintext[i] = 'a'
-		}
-		plaintext = append(plaintext, decoded...)
-
-		// todo: remove debug error
-		if len(plaintext) != blockSize-1 {
-			return nil, fmt.Errorf("unexpected plaintext size: %v", plaintext)
-		}
-
-		ciphertext, err := encrypter(plaintext)
+	shiftedCiphertexts := make(map[int][]byte, blockSize)
+	messageLen := 0
+	lastLen := 0
+	for shift := 0; shift < blockSize; shift++ {
+		prefix := decoded[0:shift]
+		ciphertext, err := encrypter(prefix)
 		if err != nil {
 			return nil, err
 		}
+		shiftedCiphertexts[shift] = ciphertext
 
-		guess, err := guessLastByte(plaintext, ciphertext[0:blockSize], encrypter)
+		if shift == 0 {
+			// edge case: message is one byte over block size.
+			// In this case prefix will grow to replace the padding, but never increase ciphertext size.
+			// We will never hit the condition below, so set the messageLen here
+			messageLen = len(ciphertext) - blockSize + 1
+		} else if lastLen < len(ciphertext) {
+			// When we detect the block size has grown,
+			// we know that (shift-1) extra bytes made the (prefix+message)%blockSize = 0.
+			// So, the message length is len(shiftedCiphertexts[shift-1]) - (shift-1)
+			messageLen = len(shiftedCiphertexts[shift-1]) - (shift - 1)
+		}
+
+		lastLen = len(ciphertext)
+	}
+
+	for i := 0; i < messageLen; i++ {
+		block := i / blockSize
+		shift := blockSize - 1 - (i % blockSize)
+		ciphertext := shiftedCiphertexts[shift]
+		plaintext := decoded[len(decoded)-(blockSize-1):]
+		guess, err := guessLastByte(plaintext, ciphertext[block*blockSize:(block+1)*blockSize], encrypter)
 		if err != nil {
 			return nil, err
 		}
 		decoded = append(decoded, guess)
 	}
 
-	// TODO: repeat for other blocks, using previously decoded data to find next match
-
-	return decoded, nil
+	return decoded[blockSize-1:], nil
 }
 
 func guessLastByte(prefix []byte, expected []byte, encrypter BlackBoxEncrypter) (byte, error) {

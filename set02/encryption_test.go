@@ -3,7 +3,6 @@ package set02
 import (
 	"crypto/aes"
 	"encoding/base64"
-	"fmt"
 	"testing"
 
 	"github.com/benCoomes/cryptopals/set01"
@@ -139,6 +138,5 @@ func TestBreakECB(t *testing.T) {
 
 	decoded, err := BreakECB(testEncrypter)
 	util.RefuteError(t, err)
-	// util.AssertSliceEqual(t, secretMessage, decoded)
-	fmt.Printf("The secret message is: %v", decoded)
+	util.AssertSliceEqual(t, secretMessage, decoded)
 }
