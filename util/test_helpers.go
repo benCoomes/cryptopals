@@ -34,6 +34,12 @@ func AssertSliceEqual[K comparable, S []K](t *testing.T, expected S, actual S) {
 	}
 }
 
+func AssertPresent(t *testing.T, s string) {
+	if len(s) <= 0 {
+		t.Errorf("Expected string to be present, but it is empty")
+	}
+}
+
 func RefuteEqual[K comparable](t *testing.T, a K, b K) {
 	if a == b {
 		t.Errorf("Expected %v and %v to be unequal", a, b)
